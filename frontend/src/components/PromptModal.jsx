@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { X, AlertCircle } from 'lucide-react';
 
-const PromptModal = ({
+const PromptModalContent = ({
     isOpen,
     onClose,
     onSubmit,
@@ -15,12 +15,6 @@ const PromptModal = ({
     const [value, setValue] = useState(defaultValue);
     const [error, setError] = useState('');
 
-    useEffect(() => {
-        if (isOpen) {
-            setValue(defaultValue);
-            setError('');
-        }
-    }, [isOpen, defaultValue]);
 
     const handleSubmit = () => {
         if (required && !value.trim()) {
@@ -124,4 +118,5 @@ const PromptModal = ({
     );
 };
 
+const PromptModal = (props) => props.isOpen ? <PromptModalContent key={props.defaultValue} {...props} /> : null;
 export default PromptModal;

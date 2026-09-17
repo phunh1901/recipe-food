@@ -40,7 +40,7 @@ export const getMyNotifications = async (req, res) => {
 export const markNotificationAsRead = async (req, res) => {
   try {
     const { id: paramId } = req.params;
-    const { id: bodyId } = req.body;
+    const { id: bodyId } = req.body || {};
     const userId = req.user.id;
 
 
@@ -71,7 +71,7 @@ export const markNotificationAsRead = async (req, res) => {
 export const deleteNotification = async (req, res) => {
   try {
     const { id: paramId } = req.params;
-    const { id: bodyId } = req.body;
+    const { id: bodyId } = req.body || {};
     const userId = req.user.id;
 
     const targetId = paramId || bodyId;

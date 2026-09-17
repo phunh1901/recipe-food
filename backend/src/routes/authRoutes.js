@@ -1,3 +1,4 @@
+import { guardAdminAction } from "../middlewares/adminPolicy.js";
 import express from "express";
 import {
   verifyToken,
@@ -28,6 +29,7 @@ router.patch(
   verifyToken,
   verifyAdmin,
   isSuperAdmin,
+  guardAdminAction,
   promoteToAdmin
 );
 
@@ -36,10 +38,11 @@ router.patch(
   verifyToken,
   verifyAdmin,
   isSuperAdmin,
+  guardAdminAction,
   demoteAdmin
 );
 
-router.patch("/ban/:id", verifyToken, verifyAdmin, banUser);
-router.patch("/unban/:id", verifyToken, verifyAdmin, unbanUser);
+router.patch("/ban/:id", verifyToken, verifyAdmin, guardAdminAction, banUser);
+router.patch("/unban/:id", verifyToken, verifyAdmin, guardAdminAction, unbanUser);
 
 export default router;

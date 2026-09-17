@@ -1,3 +1,5 @@
+import sanitizeHtml from "sanitize-html";
+
 export const REGEX_PATTERNS = {
   EMAIL: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
   FULL_NAME: /^[a-zA-ZÀ-ỹ\s]{2,50}$/,
@@ -22,16 +24,15 @@ export const isValidTextarea = (text, min = 1, max = 5000) => {
 
 // Chống XSS cơ bản
 export const sanitizeInput = (text) => {
-  if (!text) return "";
-  return text
-    .trim()
-    .replace(/<script\b[^>]*>([\s\S]*?)<\/script>/gim, "") // Xóa thẻ script
-    .replace(/on\w+="[^"]*"/gim, "") // Xóa các event handler như onclick
-    .replace(/javascript:/gim, ""); // Xóa các link thực thi code
+  if (typeof text !== "string") return "";
+  return sanitizeHtml(text.trim(), {
+    allowedTags: ["p", "br", "h2", "h3", "h4", "ul", "ol", "li", "strong", "b", "em", "i", "u", "blockquote"],
+    allowedAttributes: {},
+  });
 };
 
 
 export const isValid = (value, pattern) => {
-  if (!value) return false;
+  if (typeof value !== "string" || !value) return false;
   return pattern.test(value);
 };

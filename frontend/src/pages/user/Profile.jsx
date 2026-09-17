@@ -3,7 +3,7 @@ import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
 import { useNavigate } from "react-router-dom";
 import axiosClient from "../../api/axiosClient";
-import { useAuth } from "../../contexts/AuthContext";
+import { useAuth } from "../../contexts/auth";
 import {
     User,
     MapPin,
@@ -33,7 +33,7 @@ const Profile = () => {
     const [updating, setUpdating] = useState(false);
     const [selectedImage, setSelectedImage] = useState(null);
     const [imagePreview, setImagePreview] = useState(null);
-    const [myRecipesCount, setMyRecipesCount] = useState(0);
+
     const [showDeleteAccountStep1, setShowDeleteAccountStep1] = useState(false);
     const [showDeleteAccountStep2, setShowDeleteAccountStep2] = useState(false);
     const [showDeleteAvatarModal, setShowDeleteAvatarModal] = useState(false);

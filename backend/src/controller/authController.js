@@ -1,12 +1,12 @@
-import { supabaseAdmin } from "../config/supabase.js";
+import { supabaseAdmin, createAuthClient } from "../config/supabase.js";
 import { REGEX_PATTERNS, isValid } from "../middlewares/validators.js";
 
 // API đăng ký -------------------------------------------------------------------
 export const register = async (req, res) => {
-  const { email, password, fullName, birthdate, gender } = req.body;
+  const { email, password, fullName, birthdate, gender } = req.body || {};
 
-  const trimmedEmail = email?.trim().toLowerCase();
-  const trimmedName = fullName?.trim();
+  const trimmedEmail = (typeof email === "string" ? email.trim().toLowerCase() : "");
+  const trimmedName = (typeof fullName === "string" ? fullName.trim() : "");
 
   // 1. Kiểm tra rỗng
   if (
@@ -49,7 +49,7 @@ export const register = async (req, res) => {
   }
   try {
     // Đăng ký vào Auth của Supabase
-    const { data: authData, error: authError } = await supabaseAdmin.auth.signUp({
+    const { data: authData, error: authError } = await createAuthClient().auth.signUp({
       email: trimmedEmail,
       password: password,
     });
@@ -126,8 +126,8 @@ export const register = async (req, res) => {
 
 // API đăng nhập -------------------------------------------------------------------------------------------
 export const login = async (req, res) => {
-  const { email, password } = req.body;
-  const trimmedEmail = email?.trim().toLowerCase();
+  const { email, password } = req.body || {};
+  const trimmedEmail = (typeof email === "string" ? email.trim().toLowerCase() : "");
 
   // 1. Validation
   if (!trimmedEmail || !password) {
@@ -141,7 +141,7 @@ export const login = async (req, res) => {
 
   try {
     // Auth qua Supabase
-    const { data, error } = await supabaseAdmin.auth.signInWithPassword({
+    const { data, error } = await createAuthClient().auth.signInWithPassword({
       email: trimmedEmail,
       password,
     });
@@ -164,8 +164,11 @@ export const login = async (req, res) => {
       .eq("id", data.user.id)
       .single();
 
+    if (dbError || !dbUser) throw dbError || new Error("Missing user profile");
+
     if (dbUser?.is_banned) {
-      await supabaseAdmin.auth.signOut();
+      const { error } = await supabaseAdmin.auth.admin.signOut(data.session.access_token, "local");
+      if (error) throw error;
       return res.status(403).json({
         resultMessage: {
           en: "Account is banned.",
@@ -176,7 +179,7 @@ export const login = async (req, res) => {
 
     return res.status(200).json({
       resultMessage: { en: "Login successful", vn: "Đăng nhập thành công" },
-      user: { ...data.user, role: dbUser?.role || "user" },
+      user: { ...data.user, role: dbUser.role, isSuperAdmin: data.user.id === process.env.SUPER_ADMIN_ID },
       session: data.session,
     });
   } catch (err) {
@@ -189,7 +192,8 @@ export const login = async (req, res) => {
 // API đăng xuất ------------------------------------------------------------------------------
 export const logout = async (req, res) => {
   try {
-    await supabaseAdmin.auth.signOut();
+    const { error } = await supabaseAdmin.auth.admin.signOut(req.token, "local");
+    if (error) throw error;
     return res.status(200).json({
       resultMessage: { en: "Logout successful", vn: "Đăng xuất thành công" },
     });
@@ -202,8 +206,8 @@ export const logout = async (req, res) => {
 
 // API quên mật khẩu -------------------------------------------------------------------------
 export const forgotPassword = async (req, res) => {
-  const { email } = req.body;
-  const trimmedEmail = email?.trim().toLowerCase();
+  const { email } = req.body || {};
+  const trimmedEmail = (typeof email === "string" ? email.trim().toLowerCase() : "");
 
   if (!isValid(trimmedEmail, REGEX_PATTERNS.EMAIL)) {
     return res.status(400).json({
@@ -215,7 +219,7 @@ export const forgotPassword = async (req, res) => {
   }
 
   try {
-    const { error } = await supabaseAdmin.auth.resetPasswordForEmail(trimmedEmail);
+    const { error } = await createAuthClient().auth.resetPasswordForEmail(trimmedEmail, { redirectTo: `${process.env.FRONTEND_URL || "http://localhost:5173"}/update-password` });
     if (error) throw error;
 
     return res.status(200).json({

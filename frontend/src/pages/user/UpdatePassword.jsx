@@ -12,15 +12,17 @@ const UpdatePassword = () => {
     e.preventDefault();
     setLoading(true);
 
-    const { error } = await supabase.auth.updateUser({ password });
-
-    if (error) {
-      toast.error(error.message);
-    } else {
+    try {
+      const { error } = await supabase.auth.updateUser({ password });
+      if (error) throw error;
+      await supabase.auth.signOut({ scope: "local" });
       toast.success("Đổi mật khẩu thành công! Vui lòng đăng nhập lại.");
       navigate("/login");
+    } catch (error) {
+      toast.error(error.message || "Không thể đổi mật khẩu.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
@@ -32,6 +34,8 @@ const UpdatePassword = () => {
         <h2 className="text-2xl font-bold mb-6 text-gray-800">Mật khẩu mới</h2>
         <input
           type="password"
+          minLength={6}
+          maxLength={20}
           placeholder="Nhập mật khẩu mới ít nhất 6 ký tự"
           className="w-full p-3 border rounded-lg mb-4 focus:ring-2 focus:ring-orange-500 outline-none"
           value={password}

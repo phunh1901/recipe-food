@@ -10,8 +10,7 @@ export const getAllCategories = async (req, res) => {
   try {
     const { page, limit, name = "" } = req.query;
 
-    const pageSize = limit ? parseInt(limit) : (page ? 10 : 1000);
-    const { from, to, currentPage } = getPagination(page, pageSize);
+    const { from, to, currentPage, pageSize } = getPagination(page, limit || (page ? 10 : 100));
 
     const { data: categories, error, count } = await supabaseAdmin
       .from("categories")

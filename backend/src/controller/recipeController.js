@@ -1,4 +1,6 @@
-﻿import { supabaseAdmin } from "../config/supabase.js";
+import { canReadRecipe } from "../middlewares/recipeAccess.js";
+import { removeStoredImage } from "../config/storage.js";
+import { supabaseAdmin } from "../config/supabase.js";
 import { uploadImage } from "../config/uploadImage.js";
 import {
   getPagination,
@@ -174,7 +176,7 @@ export const updateRecipe = async (req, res) => {
     // Kiểm tra role
     const { data: existingRecipe, error: fetchError } = await supabaseAdmin
       .from("recipes")
-      .select("user_id")
+      .select("user_id, visibility")
       .eq("id", id)
       .single();
 
@@ -196,8 +198,11 @@ export const updateRecipe = async (req, res) => {
       });
     }
 
-    // Object cập nhật
+    // Public edits must be moderated again.
     const updateData = { updated_at: new Date().toISOString() };
+    if (role !== "admin" && existingRecipe.visibility === "public") {
+      Object.assign(updateData, { visibility: "private", status: "pending", is_public_request: true });
+    }
 
     if (food_name) {
       const trimmedName = food_name.trim();
@@ -559,6 +564,7 @@ export const getRecipeById = async (req, res) => {
     // Tổng hợp dữ liệu trả về
     const finalData = {
       ...recipe,
+      content: sanitizeInput(recipe.content),
       statistics: {
         favoriteCount: favCountResult.count || 0,
         likeCount: likes,
@@ -623,7 +629,7 @@ export const searchRecipesByName = async (req, res) => {
       { count: "exact" }
     );
 
-    query = query.ilike("food_name", `%${name.trim()}%`).eq("visibility", "public");
+    query = query.ilike("food_name", `%${name.trim()}%`).eq("visibility", "public").eq("status", "approved");
 
     // Phân loại độ khó
     const { difficulty } = req.query;
@@ -863,7 +869,7 @@ export const getFavoritesRecipeOfUser = async (req, res) => {
         `
         created_at,
         recipe:recipe_id (
-          id, food_name, image_url, description, cooking_time, difficulty,
+          id, food_name, image_url, description, cooking_time, difficulty, user_id, visibility, status,
           user:user_id (id, fullName, avatar_url)
         )
       `
@@ -872,7 +878,7 @@ export const getFavoritesRecipeOfUser = async (req, res) => {
 
     if (error) throw error;
 
-    const formattedData = data.map(item => ({
+    const formattedData = data.filter(item => canReadRecipe(item.recipe, req.user)).map(item => ({
       ...item.recipe,
       favorited_at: item.created_at
     }));
@@ -1074,7 +1080,7 @@ export const getPendingRecipes = async (req, res) => {
         vn: "Lấy danh sách công thức chờ duyệt thành công",
       },
       pagination: getPaginationResult(count, currentPage, pageSize),
-      data: data,
+      data: data.map(recipe => ({ ...recipe, content: sanitizeInput(recipe.content) })),
     });
   } catch (err) {
     console.error("Error getPendingRecipes:", err.message);
@@ -1253,16 +1259,7 @@ export const deleteRecipeImage = async (req, res) => {
     }
 
     // Nếu có ảnh thì xóa nó khỏi storage
-    if (recipe.image_url) {
-      const imagePath = recipe.image_url.split('/').pop();
-      const { error: deleteStorageError } = await supabaseAdmin.storage
-        .from('recipes')
-        .remove([`images/${imagePath}`]);
-
-      if (deleteStorageError) {
-        console.error('Error deleting recipe image from storage:', deleteStorageError);
-      }
-    }
+    await removeStoredImage(recipe.image_url, "recipes", recipe.user_id);
 
     // cập nhật database để xóa image_url
     const { error: updateError } = await supabaseAdmin

@@ -1,4 +1,4 @@
-import { supabase, supabaseAdmin } from "../config/supabase.js";
+import { supabaseAdmin } from "../config/supabase.js";
 import { v4 as uuidv4 } from "uuid";
 
 export const uploadImage = async (file, bucketName, userId) => {
@@ -7,9 +7,10 @@ export const uploadImage = async (file, bucketName, userId) => {
     if (!bucketName) throw new Error("No bucket provided");
 
     // Tạo tên file unique
-    const fileExt = file.originalname.split(".").pop();
+    const fileExt = { "image/jpeg": "jpg", "image/png": "png", "image/gif": "gif", "image/webp": "webp" }[file.mimetype];
+    if (!fileExt) throw new Error("Unsupported image type");
 
-    const filePath = `${userId}/recipe_${Date.now()}.${fileExt}`;
+    const filePath = `${userId}/${uuidv4()}.${fileExt}`;
 
     // Upload
     const { data, error } = await supabaseAdmin.storage

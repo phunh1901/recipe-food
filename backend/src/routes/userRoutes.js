@@ -1,3 +1,4 @@
+import { guardAdminAction } from "../middlewares/adminPolicy.js";
 import express from "express";
 /** @type {express.Router} */
 import upload from "../middlewares/multer.js";
@@ -39,9 +40,10 @@ router.put(
   verifyToken,
   verifyAdmin,
   upload.single("image"),
+  guardAdminAction,
   adminUpdateUser
 );
-router.delete("/admin/delete/:id", verifyToken, verifyAdmin, adminDeleteUser);
+router.delete("/admin/delete/:id", verifyToken, verifyAdmin, guardAdminAction, adminDeleteUser);
 router.get("/admin/stats", verifyToken, verifyAdmin, getAdminStats);
 
 export default router;

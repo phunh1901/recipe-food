@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
     Clock,
@@ -17,7 +17,7 @@ import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
 import axiosClient from "../../api/axiosClient";
 import toast from "react-hot-toast";
-import { useAuth } from "../../contexts/AuthContext";
+import { useAuth } from "../../contexts/auth";
 import ConfirmModal from "../../components/ConfirmModal";
 
 const RecipeDetail = () => {
@@ -68,6 +68,16 @@ const RecipeDetail = () => {
         return () => document.head.removeChild(style);
     }, []);
 
+    const fetchComments = useCallback(async () => {
+        try {
+            const response = await axiosClient.get(`/comments/${id}`);
+            setComments(response.data || []);
+            setCommentCount(response.pagination?.totalItems || response.data?.length || 0);
+        } catch (err) {
+            console.error('Lỗi lấy comments:', err);
+        }
+    }, [id]);
+
     useEffect(() => {
         const fetchRecipeDetail = async () => {
             try {
@@ -84,17 +94,7 @@ const RecipeDetail = () => {
 
         fetchRecipeDetail();
         fetchComments();
-    }, [id, navigate]);
-
-    const fetchComments = async () => {
-        try {
-            const response = await axiosClient.get(`/comments/${id}`);
-            setComments(response.data || []);
-            setCommentCount(response.pagination?.total || response.data?.length || 0);
-        } catch (err) {
-            console.error('Lỗi lấy comments:', err);
-        }
-    };
+    }, [id, navigate, fetchComments]);
 
     const handleSubmitComment = async (e) => {
         e.preventDefault();
@@ -115,7 +115,7 @@ const RecipeDetail = () => {
             toast.success('Đã thêm bình luận!');
             setNewComment('');
             fetchComments(); // Reload comments
-        } catch (err) {
+        } catch {
             toast.error('Lỗi khi gửi bình luận');
         } finally {
             setSubmittingComment(false);
@@ -136,7 +136,7 @@ const RecipeDetail = () => {
             toast.success('Đã cập nhật bình luận!');
             setEditingCommentId(null);
             fetchComments();
-        } catch (err) {
+        } catch {
             toast.error('Lỗi khi cập nhật bình luận');
         }
     };
@@ -152,7 +152,7 @@ const RecipeDetail = () => {
             toast.success('Đã xóa bình luận!');
             fetchComments();
             setOpenDropdownId(null);
-        } catch (err) {
+        } catch {
             toast.error('Lỗi khi xóa bình luận');
         }
     };
@@ -170,7 +170,7 @@ const RecipeDetail = () => {
             // Reload recipe để cập nhật stats
             const response = await axiosClient.get(`/recipes/detail-recipe/${id}`);
             setRecipe(response.data);
-        } catch (err) {
+        } catch {
             toast.error('Lỗi khi gửi phản hồi');
         }
     };
@@ -199,7 +199,7 @@ const RecipeDetail = () => {
             }));
 
             toast.success(isFavorited ? 'Đã thêm vào yêu thích' : 'Đã xóa khỏi yêu thích');
-        } catch (err) {
+        } catch {
             toast.error('Lỗi khi lưu yêu thích');
         }
     };

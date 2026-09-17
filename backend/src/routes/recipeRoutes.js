@@ -1,3 +1,4 @@
+import { requireRecipeAccess } from "../middlewares/recipeAccess.js";
 import express from "express";
 import upload from "../middlewares/multer.js";
 import { verifyToken, verifyAdmin, optionalVerifyToken } from "../middlewares/authMiddlewares.js";
@@ -28,9 +29,9 @@ router.delete("/delete/:id", verifyToken, deleteRecipe);
 router.delete("/:id/image", verifyToken, deleteRecipeImage);
 router.get("/all-recipes", getAllRecipes);
 router.get("/category/:categoryId", getRecipesByCategory);
-router.get("/detail-recipe/:id", optionalVerifyToken, getRecipeById);
+router.get("/detail-recipe/:id", optionalVerifyToken, requireRecipeAccess, getRecipeById);
 router.get("/search", searchRecipesByName);
-router.put("/bookmark/:recipeId", verifyToken, toggleFavorite);
+router.put("/bookmark/:recipeId", verifyToken, requireRecipeAccess, toggleFavorite);
 router.get("/favorite", verifyToken, getFavoritesRecipeOfUser);
 router.patch("/request-public/:recipeId", verifyToken, requestPublicRecipe);
 router.get("/my-recipes", verifyToken, getMyRecipes);

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import axiosClient from "../../api/axiosClient";
-import { useAuth } from "../../contexts/AuthContext";
+import { useAuth } from "../../contexts/auth";
 import { useNavigate, useLocation } from "react-router-dom";
 import toast from "react-hot-toast";
 
@@ -26,8 +26,7 @@ const Login = () => {
       const { user, session } = res;
 
       // Lưu auth
-      login(user);
-      localStorage.setItem("token", session.access_token);
+      await login(user, session);
 
       toast.success("Chào mừng bạn quay trở lại!");
 
@@ -36,7 +35,7 @@ const Login = () => {
 
     } catch (err) {
       toast.error(
-        err?.response?.data?.resultMessage?.vn || "Đăng nhập thất bại"
+        err?.resultMessage?.vn || "Đăng nhập thất bại"
       );
     }
   };

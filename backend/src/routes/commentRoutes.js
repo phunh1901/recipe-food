@@ -1,5 +1,6 @@
+import { requireRecipeAccess } from "../middlewares/recipeAccess.js";
 import express from "express";
-import { verifyToken } from "../middlewares/authMiddlewares.js";
+import { verifyToken, optionalVerifyToken } from "../middlewares/authMiddlewares.js";
 import {
   addComment,
   getComments,
@@ -9,8 +10,8 @@ import {
 
 const router = express.Router();
 
-router.post("/:recipeId", verifyToken, addComment);
-router.get("/:recipeId", getComments);
+router.post("/:recipeId", verifyToken, requireRecipeAccess, addComment);
+router.get("/:recipeId", optionalVerifyToken, requireRecipeAccess, getComments);
 router.put("/:commentId", verifyToken, updateComment);
 router.delete("/:commentId", verifyToken, deleteComment);
 

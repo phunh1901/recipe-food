@@ -74,7 +74,7 @@ const ImageUpload = ({ onImageChange, initialPreview = null, label = "Ảnh món
                                 console.error('Image preview load error');
                                 e.target.style.display = 'none';
                             }}
-                            onLoad={(e) => {
+                            onLoad={() => {
                                 console.log('Image preview loaded successfully');
                             }}
                         />

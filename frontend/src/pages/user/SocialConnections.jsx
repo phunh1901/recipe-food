@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
 import axiosClient from "../../api/axiosClient";
@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import toast from "react-hot-toast";
-import { useAuth } from "../../contexts/AuthContext";
+import { useAuth } from "../../contexts/auth";
 
 const SocialConnections = () => {
     const [searchParams] = useSearchParams();
@@ -30,7 +30,7 @@ const SocialConnections = () => {
     const [targetUser, setTargetUser] = useState(null);
     const navigate = useNavigate();
 
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
         try {
             setLoading(true);
 
@@ -65,11 +65,11 @@ const SocialConnections = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [urlUserId, currentUser?.id]);
 
     useEffect(() => {
         fetchData();
-    }, [urlUserId, urlTab]);
+    }, [fetchData]);
 
     const handleToggleFollow = async (targetUserId) => {
         try {

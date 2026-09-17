@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
 import axiosClient from "../../api/axiosClient";
 import { User, ChevronRight, Search as SearchIcon, Users } from "lucide-react";
 
-const UserSearch = () => {
+const UserSearchContent = () => {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
     const [users, setUsers] = useState([]);
@@ -15,7 +15,7 @@ const UserSearch = () => {
 
     const query = searchParams.get("query") || "";
 
-    const fetchUsers = async (page = 1) => {
+    const fetchUsers = useCallback(async (page = 1) => {
         setLoading(true);
         try {
             const res = await axiosClient.get(`/user/search?name=${encodeURIComponent(query)}&page=${page}&limit=12`);
@@ -27,16 +27,11 @@ const UserSearch = () => {
         } finally {
             setLoading(false);
         }
-    };
-
-    useEffect(() => {
-        setCurrentPage(1);
-        fetchUsers(1);
     }, [query]);
 
     useEffect(() => {
         fetchUsers(currentPage);
-    }, [currentPage]);
+    }, [currentPage, fetchUsers]);
 
     const handlePageChange = (newPage) => {
         if (newPage >= 1 && newPage <= (pagination?.totalPages || 1)) {
@@ -146,4 +141,8 @@ const UserSearch = () => {
     );
 };
 
+const UserSearch = () => {
+  const [params] = useSearchParams();
+  return <UserSearchContent key={params.get("query") || ""} />;
+};
 export default UserSearch;

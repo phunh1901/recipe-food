@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { useAuth } from "../contexts/AuthContext";
+import { useAuth } from "../contexts/auth";
 import { supabase } from "../api/supabaseClient";
 import axiosClient from "../api/axiosClient";
 import {
@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 
-const Navbar = () => {
+const NavbarContent = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -26,40 +26,21 @@ const Navbar = () => {
   const [showNotif, setShowNotif] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
 
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchType, setSearchType] = useState("recipe");
-
-  // Search ---------------------------------------------
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-
-    if (location.pathname === "/search-users") {
-      setSearchType("user");
-      setSearchQuery(params.get("query") || "");
-    } else if (params.get("search")) {
-      setSearchType("recipe");
-      setSearchQuery(params.get("search") || "");
-    }
-  }, [location.pathname, location.search]);
-
-  // Fetch Notifications ---------------------------------------------
-  const fetchNotifications = async () => {
-    if (!user) return;
-    try {
-      const res = await axiosClient.get("/notifications");
-      const notifList = res.data || [];
-      setNotifications(notifList);
-      setUnreadCount(notifList.filter((n) => !n.is_read).length);
-    } catch (err) {
-      console.error("Lỗi lấy thông báo:", err);
-    }
-  };
+  const params = new URLSearchParams(location.search);
+  const [searchQuery, setSearchQuery] = useState(params.get("query") || params.get("search") || "");
+  const [searchType, setSearchType] = useState(location.pathname === "/search-users" ? "user" : "recipe");
 
   // lắng nghe thông báo ---------------------------------------------
   useEffect(() => {
     if (!user) return;
 
-    fetchNotifications();
+    let active = true;
+    axiosClient.get("/notifications").then(res => {
+      if (!active) return;
+      const list = res.data || [];
+      setNotifications(list);
+      setUnreadCount(list.filter(n => !n.is_read).length);
+    }).catch(error => console.error("Lỗi lấy thông báo:", error));
 
     const channel = supabase
       .channel("notifications")
@@ -80,13 +61,14 @@ const Navbar = () => {
       .subscribe();
 
     return () => {
+      active = false;
       supabase.removeChannel(channel);
     };
   }, [user]);
 
   // Handlers ---------------------------------------------
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     navigate("/");
   };
 
@@ -196,7 +178,7 @@ const Navbar = () => {
                               setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
                               setUnreadCount(0);
                               toast.success("Đã đọc tất cả");
-                            } catch (err) {
+                            } catch {
                               toast.error("Lỗi thao tác");
                             }
                           }}
@@ -370,4 +352,9 @@ const Navbar = () => {
   );
 };
 
+const Navbar = () => {
+  const location = useLocation();
+  const { user } = useAuth();
+  return <NavbarContent key={location.pathname + location.search + (user?.id || "guest")} />;
+};
 export default Navbar;

@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
 import axiosClient from "../../api/axiosClient";
 import { ChevronLeft, ChevronRight, TrendingUp, Filter } from "lucide-react";
 
-const Home = () => {
+const HomeContent = () => {
   const [recipes, setRecipes] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -21,7 +21,7 @@ const Home = () => {
   }, [searchParams]);
 
   // Điều chỉnh chế độ hiển thị
-  const fetchRecipes = async (page) => {
+  const fetchRecipes = useCallback(async (page) => {
     setLoading(true);
     try {
       let url = `/recipes/all-recipes?page=${page}&limit=9`;
@@ -45,7 +45,7 @@ const Home = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [searchQuery, selectedCategory, selectedDifficulty]);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -60,13 +60,9 @@ const Home = () => {
   }, []);
 
   useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery, selectedCategory, selectedDifficulty]);
-
-  useEffect(() => {
     fetchRecipes(currentPage);
     window.scrollTo({ top: 0, behavior: "smooth" });
-  }, [currentPage, searchQuery, selectedCategory, selectedDifficulty]);
+  }, [currentPage, fetchRecipes]);
 
   const handlePageChange = (newPage) => {
     if (newPage >= 1 && newPage <= (pagination?.totalPages || 1)) {
@@ -334,4 +330,8 @@ const Home = () => {
   );
 };
 
+const Home = () => {
+  const [params] = useSearchParams();
+  return <HomeContent key={params.get("search") || ""} />;
+};
 export default Home;

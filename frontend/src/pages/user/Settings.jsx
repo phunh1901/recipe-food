@@ -56,7 +56,7 @@ const Settings = () => {
             });
         } catch (err) {
             console.error("Lỗi đổi mật khẩu:", err);
-            const msg = err.response?.data?.resultMessage?.vn || "Đổi mật khẩu thất bại";
+            const msg = err.resultMessage?.vn || "Đổi mật khẩu thất bại";
             toast.error(msg);
         } finally {
             setLoading(false);

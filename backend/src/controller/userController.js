@@ -1,8 +1,10 @@
-import { supabaseAdmin } from "../config/supabase.js";
+import { randomUUID } from "node:crypto";
+import { supabaseAdmin, createAuthClient } from "../config/supabase.js";
 import {
   getPagination,
   getPaginationResult,
 } from "../middlewares/pagination.js";
+import { removeStoredImage } from "../config/storage.js";
 import { isValid, REGEX_PATTERNS } from "../middlewares/validators.js";
 
 // Xem tài khoản cá nhân của mình ------------------------------------------
@@ -54,6 +56,7 @@ export const getMyProfile = async (req, res) => {
       },
       data: {
         ...user,
+        isSuperAdmin: userId === process.env.SUPER_ADMIN_ID,
         followersCount: followerCount.count || 0,
         followingCount: followingCount.count || 0,
       },
@@ -146,6 +149,10 @@ export const selfDeleteAccount = async (req, res) => {
   try {
     const userId = req.user.id;
 
+    if (userId === process.env.SUPER_ADMIN_ID) {
+      return res.status(403).json({ resultMessage: { vn: "Không thể xóa tài khoản quản trị viên tối cao." } });
+    }
+
     // 1. Xóa tất cả dữ liệu liên quan (CASCADE DELETE)
     console.log(`Starting cascade delete for user ${userId}`);
 
@@ -232,7 +239,8 @@ export const changePassword = async (req, res) => {
       });
     }
 
-    const { error: signInError } = await supabaseAdmin.auth.signInWithPassword({
+    const authClient = createAuthClient();
+    const { error: signInError } = await authClient.auth.signInWithPassword({
       email: req.user.email,
       password: oldPassword,
     });
@@ -246,7 +254,7 @@ export const changePassword = async (req, res) => {
       });
     }
 
-    const { error: updateError } = await supabaseAdmin.auth.updateUser({
+    const { error: updateError } = await authClient.auth.updateUser({
       password: newPassword,
     });
 
@@ -305,8 +313,8 @@ export const updateUser = async (req, res) => {
 
     // Xử lý File Ảnh
     if (req.file) {
-      const ext = req.file.originalname.split(".").pop();
-      const filePath = `${userId}/avatar_${Date.now()}.${ext}`;
+      const ext = { "image/jpeg": "jpg", "image/png": "png", "image/gif": "gif", "image/webp": "webp" }[req.file.mimetype];
+      const filePath = `${userId}/avatar_${randomUUID()}.${ext}`;
 
       const { error: uploadError } = await supabaseAdmin.storage
         .from("avatar")
@@ -535,7 +543,7 @@ export const searchUsers = async (req, res) => {
       count,
     } = await supabaseAdmin
       .from("users")
-      .select("id, email, fullName, avatar_url, role, is_banned, created_at", {
+      .select("id, fullName, avatar_url, created_at", {
         count: "exact",
       })
       .ilike("fullName", `%${name.trim()}%`)
@@ -575,7 +583,7 @@ export const adminUpdateUser = async (req, res) => {
     if (is_banned !== undefined) updateData.is_banned = is_banned;
 
     // Role changing logic
-    if (role && ["user", "admin", "superadmin"].includes(role)) {
+    if (role && ["user", "admin"].includes(role)) {
       updateData.role = role;
     }
 
@@ -601,8 +609,8 @@ export const adminUpdateUser = async (req, res) => {
 
     // 2. Xử lý File Ảnh (Avatar)
     if (req.file) {
-      const ext = req.file.originalname.split(".").pop();
-      const filePath = `${id}/avatar_${Date.now()}.${ext}`;
+      const ext = { "image/jpeg": "jpg", "image/png": "png", "image/gif": "gif", "image/webp": "webp" }[req.file.mimetype];
+      const filePath = `${id}/avatar_${randomUUID()}.${ext}`;
 
       const { error: uploadError } = await supabaseAdmin.storage
         .from("avatar")
@@ -677,7 +685,8 @@ export const getAdminStats = async (req, res) => {
     const { count: publicRecipes } = await supabaseAdmin
       .from("recipes")
       .select("*", { count: "exact", head: true })
-      .eq("status", "approved");
+      .eq("status", "approved")
+      .eq("visibility", "public");
 
     const { count: pendingRecipes } = await supabaseAdmin
       .from("recipes")
@@ -744,16 +753,7 @@ export const deleteAvatar = async (req, res) => {
     }
 
     // If there's an avatar, delete it from storage
-    if (userData.avatar_url) {
-      const avatarPath = userData.avatar_url.split('/').pop();
-      const { error: deleteStorageError } = await supabaseAdmin.storage
-        .from('avatars')
-        .remove([`avatars/${avatarPath}`]);
-
-      if (deleteStorageError) {
-        console.error('Error deleting avatar from storage:', deleteStorageError);
-      }
-    }
+    await removeStoredImage(userData.avatar_url, "avatar", userId);
 
     // Update database to remove avatar_url
     const { error: updateError } = await supabaseAdmin

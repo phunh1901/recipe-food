@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
 import axiosClient from "../../api/axiosClient";
@@ -19,7 +19,7 @@ import {
     FolderPlus
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../../contexts/AuthContext";
+import { useAuth } from "../../contexts/auth";
 import toast from "react-hot-toast";
 import ConfirmModal from "../../components/ConfirmModal";
 
@@ -40,10 +40,10 @@ const AdminCategoryManagement = () => {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [pendingDeleteCatId, setPendingDeleteCatId] = useState(null);
 
-    const fetchCategories = async (page = 1, search = searchTerm) => {
+    const fetchCategories = useCallback(async (page = 1, search = searchTerm) => {
         try {
             setLoading(true);
-            const res = await axiosClient.get(`/categories?page=${page}&limit=10&name=${search}`);
+            const res = await axiosClient.get(`/categories?page=${page}&limit=10&name=${encodeURIComponent(search)}`);
             setCategories(res.data || []);
             setPagination(res.pagination || { currentPage: page, totalPages: 1 });
         } catch (err) {
@@ -52,7 +52,7 @@ const AdminCategoryManagement = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [searchTerm]);
 
     useEffect(() => {
         const delayDebounceFn = setTimeout(() => {
@@ -60,7 +60,7 @@ const AdminCategoryManagement = () => {
         }, 500);
 
         return () => clearTimeout(delayDebounceFn);
-    }, [searchTerm]);
+    }, [searchTerm, fetchCategories]);
 
     const handleCreate = async (e) => {
         e.preventDefault();
@@ -87,7 +87,7 @@ const AdminCategoryManagement = () => {
             toast.success("Cập nhật danh mục thành công!");
             setEditingCategory(null);
             fetchCategories(pagination.currentPage);
-        } catch (err) {
+        } catch {
             toast.error("Cập nhật thất bại");
         } finally {
             setActionLoading(false);

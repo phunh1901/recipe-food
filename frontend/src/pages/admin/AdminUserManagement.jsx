@@ -21,13 +21,13 @@ import {
     MoreHorizontal
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../../contexts/AuthContext";
+import { useAuth } from "../../contexts/auth";
 import toast from "react-hot-toast";
 import ConfirmModal from "../../components/ConfirmModal";
 
 const AdminUserManagement = () => {
     const navigate = useNavigate();
-    const { logout } = useAuth();
+    const { logout, user: currentUser } = useAuth();
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
@@ -60,15 +60,6 @@ const AdminUserManagement = () => {
 
     const handleBanToggle = async (user) => {
         try {
-            // Backend updateuser API supports partial updates, assuming is_banned can be toggled via adminUpdateUser or a specialized endpoint
-            // Looking at userRoutes.js, there is adminUpdateUser: router.put("/admin/updateuser/:id", ...)
-            // Let's use that if it supports is_banned, otherwise we might need to check if there is a specific ban toggle logic
-            // In userController.js, adminUpdateUser doesn't seem to explicitly handle is_banned in the destructuring (lines 492-493),
-            // but the database update uses `updateData` which could include anything.
-            // Wait, looking at adminUpdateUser in userController.js (line 493): const { fullName, birthdate, gender } = req.body || {};
-            // It doesn't seem to take is_banned. I'll check if there's another point.
-            // Actually, I'll just try to send is_banned: !user.is_banned. If the backend doesn't handle it, I'll have to add it.
-
             await axiosClient.put(`/user/admin/updateuser/${user.id}`, {
                 is_banned: !user.is_banned
             });
@@ -107,7 +98,7 @@ const AdminUserManagement = () => {
             toast.success("Cập nhật thành công!");
             setEditingUser(null);
             fetchUsers(pagination.currentPage);
-        } catch (err) {
+        } catch {
             toast.error("Cập nhật thất bại");
         } finally {
             setUpdating(false);
@@ -351,6 +342,7 @@ const AdminUserManagement = () => {
                             <div>
                                 <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Vai trò</label>
                                 <select
+                                    disabled={!currentUser?.isSuperAdmin || editingUser.id === currentUser.id}
                                     value={editForm.role}
                                     onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
                                     className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition"

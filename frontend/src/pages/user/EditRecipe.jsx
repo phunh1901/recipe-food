@@ -1,4 +1,5 @@
-﻿import React, { useState, useEffect } from 'react';
+import { escapeHtml } from "../../utils/recipeContent";
+import React, { useState, useEffect } from 'react';
 import axiosClient from "../../api/axiosClient";
 import Navbar from "../../components/Navbar";
 import ImageUpload from "../../components/ImageUpload";
@@ -90,14 +91,14 @@ const EditRecipe = () => {
         if (ingredients.some(ing => ing.trim())) {
             html += '<h3>Nguyên liệu:</h3><ul>';
             ingredients.forEach(ing => {
-                if (ing.trim()) html += `<li>${ing}</li>`;
+                if (ing.trim()) html += `<li>${escapeHtml(ing)}</li>`;
             });
             html += '</ul>';
         }
         if (steps.some(step => step.trim())) {
             html += '<h3>Các bước thực hiện:</h3><ol>';
             steps.forEach(step => {
-                if (step.trim()) html += `<li>${step}</li>`;
+                if (step.trim()) html += `<li>${escapeHtml(step)}</li>`;
             });
             html += '</ol>';
         }

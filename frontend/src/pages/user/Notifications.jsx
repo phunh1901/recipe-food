@@ -62,7 +62,7 @@ const Notifications = () => {
                 setNotifications(prev => prev.filter(n => n.id !== id));
                 toast.success("Đã xóa thông báo");
             }
-        } catch (err) {
+        } catch {
             toast.error("Không thể xóa thông báo");
         }
     };

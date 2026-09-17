@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axiosClient from "../../api/axiosClient";
 import Navbar from "../../components/Navbar";
@@ -15,7 +15,7 @@ import {
     Clock
 } from "lucide-react";
 import toast from "react-hot-toast";
-import { useAuth } from "../../contexts/AuthContext";
+import { useAuth } from "../../contexts/auth";
 
 const PublicProfile = () => {
     const { id } = useParams();
@@ -31,11 +31,7 @@ const PublicProfile = () => {
 
     const isOwnProfile = currentUser?.id === id;
 
-    useEffect(() => {
-        fetchProfileData();
-    }, [id]);
-
-    const fetchProfileData = async () => {
+    const fetchProfileData = useCallback(async () => {
         setLoading(true);
         try {
             // 1. Get Public Profile Info
@@ -72,7 +68,9 @@ const PublicProfile = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [id, currentUser, navigate]);
+
+    useEffect(() => { fetchProfileData(); }, [fetchProfileData]);
 
     const handleFollowToggle = async () => {
         if (!currentUser) {
@@ -82,7 +80,7 @@ const PublicProfile = () => {
         }
 
         try {
-            const res = await axiosClient.post(`/follows/${id}`);
+            await axiosClient.post(`/follows/${id}`);
             setIsFollowing(!isFollowing);
             setStats(prev => ({
                 ...prev,
@@ -97,7 +95,7 @@ const PublicProfile = () => {
             } else {
                 setFavorites([]);
             }
-        } catch (err) {
+        } catch {
             toast.error("Gặp lỗi khi thực hiện thao tác");
         }
     };
